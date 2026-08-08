@@ -1,0 +1,26 @@
+[package]
+name = "sparse-solver-rs"
+version = "0.1.0-alpha.1"
+edition = "2024"
+description = "Iterative sparse linear solvers in Rust"
+license = "MIT"
+repository = "https://github.com/pedrozaz/sparse-solver-rs"
+keywords = [
+  "sparse",
+  "linear-algebra",
+  "multigrid",
+  "conjugate-gradient",
+  "numerical",
+]
+categories = ["science", "mathematics", "algorithms"]
+readme = "README.md"
+
+[dev-dependencies]
+criterion = "0.8.2"
+proptest = "1.11.0"
+
+[[bench]]
+name = "solver_bench"
+harness = false
+
+[dependencies]
