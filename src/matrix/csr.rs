@@ -96,8 +96,8 @@ impl CsrMatrix {
                 row_ptr[current_row] = values.len();
             }
 
-            // If entry at same (row, col) exists, accumulate value
-            if current_row == r && col_indices.last() == Some(&c) {
+            // If entry at same (row, col) exists in current_row, accumulate value
+            if values.len() > row_ptr[r] && col_indices.last() == Some(&c) {
                 if let Some(last_val) = values.last_mut() {
                     *last_val += val;
                 }
@@ -158,5 +158,95 @@ impl CsrMatrix {
             *y_i = sum;
         }
         y
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use proptest::prelude::*;
+
+    #[test]
+    fn test_csr_from_triplets_and_spmv() {
+        // Matrix:
+        // [1.0, 2.0, 0.0]
+        // [0.0, 3.0, 4.0]
+        // [5.0, 0.0, 6.0]
+        let triplets = vec![
+            (0, 0, 1.0),
+            (0, 1, 2.0),
+            (1, 1, 3.0),
+            (1, 2, 4.0),
+            (2, 0, 5.0),
+            (2, 2, 6.0),
+        ];
+
+        let csr = CsrMatrix::from_triplets(3, 3, &triplets);
+
+        assert_eq!(csr.nrows(), 3);
+        assert_eq!(csr.ncols(), 3);
+        assert_eq!(csr.nnz(), 6);
+        assert_eq!(csr.values(), &[1.0, 2.0, 3.0, 4.0, 5.0, 6.0]);
+        assert_eq!(csr.col_indices(), &[0, 1, 1, 2, 0, 2]);
+        assert_eq!(csr.row_ptr(), &[0, 2, 4, 6]);
+
+        let x = vec![1.0, 2.0, 3.0];
+        let y = csr.spmv(&x);
+        // y[0] = 1*1 + 2*2 = 5
+        // y[1] = 3*2 + 4*3 = 18
+        // y[2] = 5*1 + 6*3 = 23
+        assert_eq!(y, vec![5.0, 18.0, 23.0]);
+    }
+
+    #[test]
+    fn test_csr_duplicates_and_zeros() {
+        let triplets = vec![(0, 0, 1.0), (0, 0, 2.0), (0, 1, 0.0), (1, 1, 4.0)];
+
+        let csr = CsrMatrix::from_triplets(2, 2, &triplets);
+        assert_eq!(csr.nnz(), 2);
+        assert_eq!(csr.values(), &[3.0, 4.0]);
+        assert_eq!(csr.col_indices(), &[0, 1]);
+        assert_eq!(csr.row_ptr(), &[0, 1, 2]);
+    }
+
+    proptest! {
+        #[test]
+        fn prop_spmv_matches_dense(
+            nrows in 1..=20usize,
+            ncols in 1..=20usize,
+            dense in prop::collection::vec(prop::collection::vec(-100.0..100.0f64, 1..=20), 1..=20),
+            x in prop::collection::vec(-100.0..100.0f64, 1..=20)
+        ) {
+            let actual_rows = nrows.min(dense.len());
+            let actual_cols = ncols.min(x.len());
+
+            let mut triplets = Vec::new();
+            for (r, row) in dense.iter().enumerate().take(actual_rows) {
+                for (c, &val) in row.iter().enumerate().take(actual_cols) {
+                    if val.abs() > 1e-6 {
+                        triplets.push((r, c, val));
+                    }
+                }
+            }
+
+            let csr = CsrMatrix::from_triplets(actual_rows, actual_cols, &triplets);
+            let x_slice = &x[..actual_cols];
+            let y_csr = csr.spmv(x_slice);
+
+            // Compute dense matrix-vector product for comparison
+            let mut y_dense = vec![0.0; actual_rows];
+            for (y_r, row) in y_dense.iter_mut().zip(dense.iter().take(actual_rows)) {
+                for (&val, &x_c) in row.iter().zip(x_slice.iter()).take(actual_cols) {
+                    if val.abs() > 1e-6 {
+                        *y_r += val * x_c;
+                    }
+                }
+            }
+
+            prop_assert_eq!(y_csr.len(), y_dense.len());
+            for (a, b) in y_csr.iter().zip(y_dense.iter()) {
+                prop_assert!((a - b).abs() < 1e-9, "Mismatch: CSR {} vs Dense {}", a, b);
+            }
+        }
     }
 }
