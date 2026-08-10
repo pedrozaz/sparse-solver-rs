@@ -45,6 +45,21 @@ impl CsrMatrix {
         &self.row_ptr
     }
 
+    /// Constructs a `CsrMatrix` from a list of triplets `(row, col, value)`.
+    ///
+    /// Duplicate entries at the same `(row, col)` position are summed together.
+    ///
+    /// # Panics
+    /// Panics if any triplet index is out of bounds for the given `nrows` and `ncols`
+    ///
+    /// # Example
+    /// ```
+    /// use sparse_solver_rs::matrix::CsrMatrix;
+    ///
+    /// let triplets = vec![(0, 0, 1.0), (0, 1, 2.0), (1, 1, 3.0)];
+    /// let matrix = CsrMatrix::from_triplets(2, 2, &triplets);
+    /// assert_eq!(matrix.nnz(), 3);
+    /// ```
     pub fn from_triplets(nrows: usize, ncols: usize, triplets: &[(usize, usize, f64)]) -> Self {
         for &(r, c, _) in triplets {
             assert!(
@@ -81,6 +96,7 @@ impl CsrMatrix {
                 row_ptr[current_row] = values.len();
             }
 
+            // If entry at same (row, col) exists, accumulate value
             if current_row == r && col_indices.last() == Some(&c) {
                 if let Some(last_val) = values.last_mut() {
                     *last_val += val;
@@ -107,6 +123,21 @@ impl CsrMatrix {
         }
     }
 
+    /// Performs sparse matrix-vector multiplication $y = A \cdot x$.
+    ///
+    /// # Panics
+    /// Panics if `x.len() != self.ncols()`.
+    ///
+    /// # Example
+    /// ```
+    /// use sparse_solver_rs::matrix::CsrMatrix;
+    ///
+    /// let triplets = vec![(0, 0, 2.0), (1, 1, 3.0)];
+    /// let matrix = CsrMatrix::from_triplets(2, 2, &triplets);
+    /// let x = vec![1.0, 2.0];
+    /// let y = matrix.spmv(&x);
+    /// assert_eq!(y, vec![2.0, 6.0]);
+    /// ```
     pub fn spmv(&self, x: &[f64]) -> Vec<f64> {
         assert_eq!(
             x.len(),
