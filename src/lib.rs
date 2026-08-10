@@ -2,3 +2,4 @@
 //! for sparse matrices (Conjugate Gradiant and Multigrid).
 
 pub mod matrix;
+pub mod solvers;
