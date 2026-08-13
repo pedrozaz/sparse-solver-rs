@@ -2,4 +2,5 @@
 //! for sparse matrices (Conjugate Gradiant and Multigrid).
 
 pub mod matrix;
+pub mod poisson;
 pub mod solvers;
