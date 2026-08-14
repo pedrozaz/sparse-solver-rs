@@ -82,14 +82,14 @@ pub fn prolongate_2d(coarse: &[f64], n_c: usize) -> Vec<f64> {
 
     for j in 0..n_f {
         for i in 0..n_f {
-            let fine_idx = j * n_f + 1;
+            let fine_idx = j * n_f + i;
 
             if i % 2 == 1 && j % 2 == 1 {
                 // Point coincides with coarse grid node
                 let I = (i - 1) / 2;
                 let J = (j - 1) / 2;
                 fine[fine_idx] = get_coarse(J as isize, I as isize);
-            } else if i % 2 == 0 && j % 2 == 0 {
+            } else if i % 2 == 0 && j % 2 == 1 {
                 // Horizontal edge between (I-1, J) and (I, J)
                 let J = (j - 1) / 2;
                 let I_right = i / 2;
@@ -97,7 +97,7 @@ pub fn prolongate_2d(coarse: &[f64], n_c: usize) -> Vec<f64> {
                 fine[fine_idx] = 0.5
                     * (get_coarse(J as isize, I_left) + get_coarse(J as isize, I_right as isize));
             } else if i % 2 == 1 && j % 2 == 0 {
-                // Vertical edge between (I, J-1) and (I,J)
+                // Vertical edge between (I, J-1) and (I, J)
                 let I = (i - 1) / 2;
                 let J_top = j / 2;
                 let J_bottom = J_top as isize - 1;
@@ -120,4 +120,57 @@ pub fn prolongate_2d(coarse: &[f64], n_c: usize) -> Vec<f64> {
     }
 
     fine
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_prolongate_constant_vector() {
+        let n_c = 3;
+        let coarse = vec![1.0; n_c * n_c];
+
+        let fine = prolongate_2d(&coarse, n_c);
+        let n_f = 2 * n_c + 1;
+        assert_eq!(fine.len(), n_f * n_f);
+
+        // Center node of fine grid (i=3, j=3) should be exactly 1.0
+        let center_idx = 3 * n_f + 3;
+        assert!((fine[center_idx] - 1.0).abs() < 1e-12);
+    }
+
+    #[test]
+    fn test_restrict_constant_vector() {
+        let n_f = 7;
+        let fine = vec![1.0; n_f * n_f];
+
+        let coarse = restrict_2d(&fine, n_f);
+        let n_c = (n_f - 1) / 2;
+        assert_eq!(coarse.len(), n_c * n_c);
+
+        // Center node of coarse grid (I=1, J=1) should be 1.0
+        let center_idx = n_c + 1;
+        assert!((coarse[center_idx] - 1.0).abs() < 1e-12);
+    }
+
+    #[test]
+    fn test_prolongate_restrict_consistency() {
+        let n_c = 3;
+        let coarse_orig = vec![2.5; n_c * n_c];
+
+        let fine = prolongate_2d(&coarse_orig, n_c);
+        let n_f = 2 * n_c + 1;
+        let coarse_restr = restrict_2d(&fine, n_f);
+
+        // Interior coarse center node (1, 1) should remain 2.5
+        assert!((coarse_restr[n_c + 1] - 2.5).abs() < 1e-12);
+    }
+
+    #[test]
+    #[should_panic]
+    fn test_restrict_even_dimension_panics() {
+        let fine = vec![1.0; 16];
+        restrict_2d(&fine, 4); // Even n_f must panic
+    }
 }
