@@ -1,8 +1,8 @@
 [package]
 name = "sparse-solver-rs"
-version = "0.1.0-alpha.1"
+version = "0.1.0"
 edition = "2024"
-description = "Iterative sparse linear solvers in Rust"
+description = "Iterative sparse linear solvers (Conjugate Gradient & Geometric Multigrid) in Rust"
 license = "MIT"
 repository = "https://github.com/pedrozaz/sparse-solver-rs"
 keywords = [
