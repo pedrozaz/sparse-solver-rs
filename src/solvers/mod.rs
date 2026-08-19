@@ -2,7 +2,7 @@ pub mod cg;
 pub mod multigrid;
 
 pub use cg::ConjugateGradient;
-pub use multigrid::{prolongate_2d, restrict_2d};
+pub use multigrid::{MultigridSolver, prolongate_2d, restrict_2d};
 
 /// Configuration options for iterative linear system solvers.
 #[derive(Debug, Clone, PartialEq)]
