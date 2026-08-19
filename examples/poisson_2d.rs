@@ -1,7 +1,7 @@
 use sparse_solver_rs::poisson::{assemble_poisson_2d, compute_l2_error, exact_poisson_solution};
+use sparse_solver_rs::solvers::SolverOptions;
 use sparse_solver_rs::solvers::cg::ConjugateGradient;
 use sparse_solver_rs::solvers::multigrid::MultigridSolver;
-use sparse_solver_rs::solvers::SolverOptions;
 
 fn main() {
     println!("=== 2D Poisson Equation Solver: CG vs Multigrid V-Cycle ===");
