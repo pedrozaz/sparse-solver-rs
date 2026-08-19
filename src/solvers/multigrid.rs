@@ -121,10 +121,6 @@ pub fn prolongate_2d(coarse: &[f64], n_c: usize) -> Vec<f64> {
 
     fine
 }
-
-use core::num;
-use std::iter;
-
 use crate::matrix::CsrMatrix;
 use crate::poisson::assemble_poisson_2d;
 use crate::solvers::{SolverOptions, SolverResult};
@@ -242,8 +238,12 @@ impl MultigridSolver {
             .map(|(&bi, &axi)| bi - axi)
             .collect();
 
-        // 3. Restrict residual to coarse grid
-        let r_coarse = restrict_2d(&r_fine, n);
+        // 3. Restrict residual to coarse grid (scale by (h_coarse / h_fine)^2 = 4.0)
+        let mut r_coarse = restrict_2d(&r_fine, n);
+        for val in &mut r_coarse {
+            *val *= 4.0;
+        }
+
         let n_c = (n - 1) / 2;
 
         // 4. Coarse grid error correction (initial guess e_coarse = 0)
@@ -329,5 +329,26 @@ mod tests {
     fn test_restrict_even_dimension_panics() {
         let fine = vec![1.0; 16];
         restrict_2d(&fine, 4); // Even n_f must panic
+    }
+
+    #[test]
+    fn test_multigrid_poisson_solver() {
+        use crate::poisson::{compute_l2_error, exact_poisson_solution};
+
+        let n = 15;
+        let (_, b) = assemble_poisson_2d(n);
+        let u_exact = exact_poisson_solution(n);
+
+        let solver = MultigridSolver::new();
+        let options = SolverOptions {
+            max_iter: 50,
+            tol: 1e-6,
+        };
+
+        let result = solver.solve(n, &b, &options);
+        assert!(result.converged, "Multigrid solver should converge");
+
+        let err_l2 = compute_l2_error(&result.solution, &u_exact, n);
+        assert!(err_l2 < 2e-3, "L2 error should be small: {}", err_l2);
     }
 }
