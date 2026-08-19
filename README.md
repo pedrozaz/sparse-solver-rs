@@ -1,6 +1,5 @@
 # sparse-solver-rs
 
-[![CI](https://github.com/pedroza/sparse-solver-rs/actions/workflows/ci.yml/badge.svg)](https://github.com/pedroza/sparse-solver-rs/actions)
 [![Crates.io](https://img.shields.io/crates/v/sparse-solver-rs.svg)](https://crates.io/crates/sparse-solver-rs)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
